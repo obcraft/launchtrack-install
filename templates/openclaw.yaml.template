@@ -1,0 +1,42 @@
+# OpenClaw Configuration — {{COMPANY_NAME}} Instance
+# Generated: {{DATE}}
+
+gateway:
+  # Server configuration
+  port: 18789
+  host: 0.0.0.0
+  
+  # Model configuration
+  models:
+    default: anthropic/claude-sonnet-4-5
+    image: anthropic/claude-sonnet-4-5
+  
+  # Security
+  allowUnconfigured: true
+  
+  # Workspace
+  workspace: /opt/launchtrack/.openclaw/workspace
+  
+  # Agent configuration
+  agent:
+    name: "Launchtrack Advisor"
+    role: "Strategic Consultant"
+    company: "{{COMPANY_NAME}}"
+    customer: "{{CUSTOMER_NAME}}"
+  
+  # Heartbeat configuration
+  heartbeat:
+    enabled: true
+    intervalMinutes: 30
+    prompt: "Read HEARTBEAT.md if it exists (workspace context). Follow it strictly. Do not infer or repeat old tasks from prior chats. If nothing needs attention, reply HEARTBEAT_OK."
+
+# Logging
+logging:
+  level: info
+  directory: /opt/launchtrack/.openclaw/logs
+
+# Integrations
+integrations:
+  supabase:
+    enabled: true
+    # Environment variables will provide SUPABASE_URL and SUPABASE_KEY

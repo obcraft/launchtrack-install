@@ -1,0 +1,89 @@
+# USER.md - Client Profile
+
+> **This file is filled during onboarding. Update as you learn more about the client.**
+
+## Client Information
+
+**Organization ID:** `{{ORG_ID}}`
+
+**Company Name:** `{{COMPANY_NAME}}`
+
+**Industry/Sector:** `[To be filled during onboarding]`
+
+**Company Size:** `[To be filled during onboarding]`
+
+**Language Preference:** `[nl/en — To be filled during onboarding]`
+
+**Primary Contact:** `{{CUSTOMER_NAME}}`
+
+**Role in Company:** `[e.g., Owner, CEO, Operations Manager — To be filled]`
+
+**Onboarded:** `{{DATE}}`
+
+---
+
+## Business Context
+
+### Core Challenges
+*(Top 3-5 business problems they're facing — fill during first conversations)*
+
+- [Challenge 1 - to be identified]
+- [Challenge 2 - to be identified]
+- [Challenge 3 - to be identified]
+
+### Primary Goals
+*(What they want to achieve in next 6-12 months — fill during first conversations)*
+
+- [Goal 1 - to be identified]
+- [Goal 2 - to be identified]
+- [Goal 3 - to be identified]
+
+---
+
+## Communication Preferences
+
+**Preferred Language:** [Dutch/English — observe and update]
+
+**Communication Style:** [Formal/Casual/Direct/Detailed — observe and note]
+
+**Best Time for Check-ins:** [Morning/Afternoon/Evening — ask or observe]
+
+**Frequency Preference:** [Weekly/Bi-weekly/Monthly/As-needed — discuss with client]
+
+---
+
+## Business Metrics (Update as you learn)
+
+**Revenue (Annual):** `[To be filled]`
+
+**Team Size:** `[To be filled]`
+
+**Customers/Clients:** `[To be filled]`
+
+**Growth Rate:** `[To be filled]`
+
+**Key Products/Services:** `[To be filled]`
+
+---
+
+## Notes
+
+*(Add context that helps you serve them better)*
+
+- Background on the company (founded when, family history, etc.)
+- Decision-making style (data-driven? intuitive? collaborative?)
+- Hot buttons (topics they're passionate about)
+- Sensitivities (topics to handle carefully)
+- Wins to celebrate
+- Lessons learned from past sessions
+
+---
+
+## Revision History
+
+- **{{DATE}}**: Initial profile created during provisioning
+- *(Add entry each time you make significant updates)*
+
+---
+
+**Last Updated:** {{DATE}}
