@@ -1,298 +1,460 @@
-# Launchtrack Customer Provisioning
+# Launchtrack Customer Provisioning System
 
-Automated provisioning toolkit for deploying dedicated Launchtrack instances for paying customers. Each customer gets their own Hetzner VPS with Launchtrack (Next.js) + OpenClaw (AI strategic consultant) pre-installed.
+Automated provisioning for dedicated Launchtrack instances on Hetzner Cloud VPS.
 
-## What Gets Deployed
+## Overview
 
-Each customer instance includes:
+Each paying customer gets their own dedicated Hetzner VPS with:
+- **Launchtrack** (Next.js app) on port 3000
+- **OpenClaw** (AI strategic consultant) with gateway on port 18789
+- **Nginx** reverse proxy for HTTPS (SSL placeholder for later domain setup)
+- **Systemd services** for auto-restart and boot persistence
+- **Firewall** (UFW) configured for secure access
 
-- **Hetzner CX22 VPS**
-  - 4GB RAM, 2 vCPU, 80GB SSD
-  - Ubuntu 24.04 LTS
-  - Location: Nuremberg (nbg1)
-  - Automatic firewall configuration (UFW)
-
-- **Launchtrack Platform**
-  - Next.js application on port 3000
-  - Connected to customer's Supabase database
-  - systemd service for automatic restart
-  - nginx reverse proxy for production
-
-- **OpenClaw AI Agent**
-  - Gateway on port 18789 (proxied via nginx)
-  - Claude Sonnet 4.5 model
-  - Dedicated workspace with customer context
-  - Strategic consultant persona
-  - Proactive heartbeat monitoring
-  - systemd service for automatic restart
-
-- **Pre-configured Agent Workspace**
-  - SOUL.md — Strategic consultant framework
-  - USER.md — Customer profile template
-  - IDENTITY.md — Agent identity and mission
-  - MEMORY.md — Long-term memory system
-  - HEARTBEAT.md — Proactive check-in schedule
-  - AGENTS.md — Workspace guidelines
-  - TOOLS.md — Customer-specific notes
+**Server Specs:** Hetzner CX22 (2 vCPU, 4GB RAM, 40GB SSD, Ubuntu 24.04)
 
 ## Prerequisites
 
-### Local Machine
-- Bash shell (Linux, macOS, WSL)
-- `curl`, `jq`, `ssh`, `scp` commands
-- SSH key pair (default: `~/.ssh/id_rsa`)
+Before provisioning:
 
-### Required Credentials
-- **Hetzner Cloud API Token** — Create at https://console.hetzner.cloud/
-- **Anthropic API Key** — Get from https://console.anthropic.com/
-- **Supabase Project** — Each customer should have their own Supabase project
-  - Project URL (e.g., `https://xyz.supabase.co`)
-  - Anon/Public Key (from project settings)
+1. **Hetzner Cloud Account**
+   - Create a project at https://console.hetzner.cloud/
+   - Generate an API token (Read & Write permissions)
 
-### Customer Information
-- Customer name (primary contact)
-- Company name
+2. **SSH Key**
+   - Default: `~/.ssh/id_rsa.pub`
+   - Or specify custom path with `--ssh-key-path`
+
+3. **Local Dependencies**
+   - `curl` for API calls
+   - `ssh` and `scp` for server access
+   - `jq` (optional, for JSON parsing)
 
 ## Quick Start
 
-### 1. Clone this repository
-```bash
-git clone https://github.com/obcraft/launchtrack-install.git
-cd launchtrack-install
-```
-
-### 2. Make scripts executable
-```bash
-chmod +x provision.sh setup-server.sh setup-agent.sh
-```
-
-### 3. Run provisioning
 ```bash
 ./provision.sh \
-  --customer-name "Jane Doe" \
-  --company-name "TechStart GmbH" \
-  --hetzner-token "YOUR_HETZNER_TOKEN" \
-  --anthropic-key "sk-ant-YOUR_KEY" \
-  --supabase-url "https://xyz.supabase.co" \
-  --supabase-key "YOUR_SUPABASE_ANON_KEY"
+  --customer-name "John Doe" \
+  --company-name "Acme Corp" \
+  --hetzner-token "YOUR_HETZNER_API_TOKEN"
 ```
 
-### 4. Wait for deployment (10-15 minutes)
-The script will:
-- Create Hetzner VPS
-- Install all dependencies
-- Clone and build Launchtrack
-- Install and configure OpenClaw
-- Set up systemd services
-- Configure nginx reverse proxy
-- Initialize agent workspace with customer context
+This will:
+1. Create a Hetzner CX22 VPS (Ubuntu 24.04, Nuremberg datacenter)
+2. Wait for server to boot and SSH to be available
+3. Install Node.js v24, dependencies, and OpenClaw
+4. Configure systemd services for Launchtrack and OpenClaw
+5. Set up firewall and nginx reverse proxy
+6. Configure the OpenClaw agent with company-specific templates
+7. Output server IP, credentials, and next steps
 
-### 5. Configure domain and SSL
+**Provisioning time:** ~10-15 minutes
+
+## Usage
+
+### Basic Usage
+
 ```bash
-# SSH into the server
-ssh root@SERVER_IP
-
-# Set up SSL certificate (replace with customer's domain)
-certbot --nginx -d customer-domain.com
+./provision.sh \
+  --customer-name "Jane Smith" \
+  --company-name "TechStart BV" \
+  --hetzner-token "abc123..."
 ```
 
-## What's Deployed
+### Advanced Options
 
-### URLs
-- **Launchtrack UI:** `http://SERVER_IP` (or `https://customer-domain.com` after SSL)
-- **OpenClaw API:** `http://SERVER_IP/api/openclaw`
-
-### Services
-Check service status:
 ```bash
+./provision.sh \
+  --customer-name "Jane Smith" \
+  --company-name "TechStart BV" \
+  --hetzner-token "abc123..." \
+  --ssh-key-path "/path/to/custom/key.pub" \
+  --server-name "launchtrack-techstart" \
+  --location "nbg1" \
+  --server-type "cx22"
+```
+
+### Options Reference
+
+| Option | Description | Default | Required |
+|--------|-------------|---------|----------|
+| `--customer-name` | Customer contact name | - | Yes |
+| `--company-name` | Company name | - | Yes |
+| `--hetzner-token` | Hetzner API token | - | Yes |
+| `--ssh-key-path` | SSH public key path | `~/.ssh/id_rsa.pub` | No |
+| `--server-name` | Server hostname | `launchtrack-<company-slug>` | No |
+| `--location` | Hetzner datacenter | `nbg1` (Nuremberg) | No |
+| `--server-type` | Server type | `cx22` | No |
+
+**Supported Hetzner Locations:**
+- `nbg1` - Nuremberg, Germany (recommended)
+- `fsn1` - Falkenstein, Germany
+- `hel1` - Helsinki, Finland
+- `ash` - Ashburn, USA
+- `hil` - Hillsboro, USA
+
+**Available Server Types:**
+- `cx22` - 2 vCPU, 4GB RAM (recommended for most)
+- `cx32` - 4 vCPU, 8GB RAM (for larger deployments)
+- `cx42` - 8 vCPU, 16GB RAM (for enterprise)
+
+## Post-Provisioning Setup
+
+After provisioning completes, follow these steps:
+
+### 1. Configure Environment Variables
+
+SSH into the server:
+```bash
+ssh root@<SERVER_IP>
+```
+
+Edit `/opt/launchtrack/.env.local`:
+```bash
+nano /opt/launchtrack/.env.local
+```
+
+Fill in the required values:
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://yourproject.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+ANTHROPIC_API_KEY=sk-ant-...
+NEXT_PUBLIC_APP_URL=https://yourdomain.com
+```
+
+### 2. Configure OpenClaw API Key
+
+Edit `/opt/launchtrack/.openclaw/workspace/openclaw.json`:
+```bash
+nano /opt/launchtrack/.openclaw/workspace/openclaw.json
+```
+
+Update the Anthropic API key:
+```json
+{
+  "anthropic": {
+    "api_key": "sk-ant-your-key-here"
+  },
+  ...
+}
+```
+
+### 3. Build and Deploy Launchtrack
+
+**Option A: Build on Server (slower)**
+```bash
+cd /opt/launchtrack
+npm install
+npm run build
+```
+
+**Option B: Build Locally and Sync (recommended)**
+```bash
+# On your local machine
+cd /path/to/Launchtrack
+npm install
+npm run build
+
+# Sync to server
+rsync -avz --exclude node_modules .next/ root@<SERVER_IP>:/opt/launchtrack/.next/
+rsync -avz --exclude node_modules public/ root@<SERVER_IP>:/opt/launchtrack/public/
+rsync -avz package.json package-lock.json root@<SERVER_IP>:/opt/launchtrack/
+
+# On server, install production dependencies only
+ssh root@<SERVER_IP> "cd /opt/launchtrack && npm ci --production"
+```
+
+### 4. Start Services
+
+```bash
+# Enable services to start on boot
+systemctl enable launchtrack
+systemctl enable openclaw-gateway
+
+# Start services
+systemctl start launchtrack
+systemctl start openclaw-gateway
+
+# Check status
 systemctl status launchtrack
-systemctl status openclaw
+systemctl status openclaw-gateway
 ```
 
-View logs:
+### 5. Configure DNS and SSL
+
+1. **Point DNS to server IP**
+   - Add an A record: `your-customer.launchtrack.io` → `<SERVER_IP>`
+   - Add CNAME for www (optional): `www.your-customer.launchtrack.io` → `your-customer.launchtrack.io`
+
+2. **Install Let's Encrypt SSL**
+   ```bash
+   apt-get install -y certbot python3-certbot-nginx
+   certbot --nginx -d your-customer.launchtrack.io -d www.your-customer.launchtrack.io
+   ```
+
+3. **Test auto-renewal**
+   ```bash
+   certbot renew --dry-run
+   ```
+
+### 6. Verify Installation
+
+Test the services:
 ```bash
-journalctl -u launchtrack -f
-journalctl -u openclaw -f
-```
+# Test Launchtrack
+curl http://localhost:3000
 
-Restart services:
-```bash
-systemctl restart launchtrack
-systemctl restart openclaw
-```
+# Test OpenClaw Gateway
+curl http://localhost:18789/health
 
-### File Locations
-- **Launchtrack source:** `/opt/launchtrack/`
-- **OpenClaw workspace:** `/opt/launchtrack/.openclaw/workspace/`
-- **OpenClaw config:** `/opt/launchtrack/.openclaw/openclaw.yaml`
-- **Environment variables:** `/opt/launchtrack/.env.local`
-
-## Pricing Context
-
-**Customer subscription:** €1,000/month per dedicated instance
-
-**Infrastructure costs:**
-- Hetzner CX22: ~€6/month
-- Anthropic API: Variable (usage-based)
-- Total overhead: ~€50-150/month depending on usage
-
-**Margin:** ~€850-950/month per customer
-
-## Post-Deployment
-
-### 1. Customer Onboarding
-- Schedule onboarding call with customer
-- Gather business context (industry, size, challenges, goals)
-- Update `/opt/launchtrack/.openclaw/workspace/USER.md` with customer profile
-- Begin initial AS-IS analysis
-
-### 2. Domain Configuration
-- Customer provides their domain
-- Point domain A record to server IP
-- Run `certbot --nginx -d customer-domain.com` for SSL
-
-### 3. Messaging Setup
-- Customer configures their own messaging channels
-- No messaging setup included in provisioning
-- Customer connects channels through Launchtrack UI
-
-### 4. Monitoring
-- Set up external monitoring (e.g., UptimeRobot)
-- Monitor Hetzner Cloud dashboard
-- Track API usage in Anthropic console
-
-## Customization
-
-### Change Server Type
-```bash
-./provision.sh ... --server-type cx32  # 8GB RAM, 4 vCPU
-```
-
-### Change Location
-```bash
-./provision.sh ... --location fsn1  # Falkenstein instead of Nuremberg
-```
-
-### Custom SSH Key
-```bash
-./provision.sh ... --ssh-key-path ~/.ssh/custom_key
-```
-
-## Security
-
-- All secrets are passed as command-line arguments (not stored in files)
-- SSH key authentication only (no password login)
-- UFW firewall enabled (only ports 22, 80, 443)
-- nginx reverse proxy for security layer
-- systemd services run as root (isolated environment)
-- SSL certificate setup required post-deployment
-
-## Troubleshooting
-
-### Provisioning fails
-- Check Hetzner API token is valid
-- Ensure SSH key exists and is readable
-- Verify all required arguments are provided
-- Check Hetzner quota (server limits)
-
-### Services won't start
-```bash
-# Check logs
-journalctl -u launchtrack -n 50
-journalctl -u openclaw -n 50
-
-# Check configuration
-cat /opt/launchtrack/.env.local
-cat /opt/launchtrack/.openclaw/openclaw.yaml
-
-# Restart services
-systemctl restart launchtrack openclaw
-```
-
-### Can't SSH into server
-- Wait a few minutes after creation (server may still be booting)
-- Check Hetzner Cloud console for server status
-- Verify SSH key path is correct
-- Try: `ssh -i ~/.ssh/id_rsa root@SERVER_IP`
-
-### Agent not responding
-```bash
-# Check OpenClaw service
-systemctl status openclaw
-journalctl -u openclaw -f
-
-# Verify workspace files exist
-ls -la /opt/launchtrack/.openclaw/workspace/
-
-# Restart OpenClaw
-systemctl restart openclaw
+# Test from outside
+curl http://<SERVER_IP>:3000
 ```
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                        Customer Instance                     │
-│                    (Hetzner CX22 VPS)                        │
-├─────────────────────────────────────────────────────────────┤
-│                                                               │
-│  ┌──────────────┐         ┌───────────────────────┐         │
-│  │   nginx      │────────▶│  Launchtrack Next.js  │         │
-│  │  (port 80)   │         │     (port 3000)       │         │
-│  └──────┬───────┘         └───────────────────────┘         │
-│         │                                                    │
-│         │                  ┌───────────────────────┐         │
-│         └─────────────────▶│  OpenClaw Gateway     │         │
-│          /api/openclaw     │     (port 18789)      │         │
-│                            └──────────┬────────────┘         │
-│                                       │                      │
-│                            ┌──────────▼────────────┐         │
-│                            │  Agent Workspace      │         │
-│                            │  - SOUL.md            │         │
-│                            │  - USER.md            │         │
-│                            │  - MEMORY.md          │         │
-│                            │  - HEARTBEAT.md       │         │
-│                            └───────────────────────┘         │
-│                                                               │
-└─────────────────────────────────────────────────────────────┘
-                              │         │
-                     ┌────────┴─────┐   └──────────────┐
-                     ▼              ▼                   ▼
-              ┌──────────┐   ┌──────────┐      ┌──────────┐
-              │Anthropic │   │ Supabase │      │  Hetzner │
-              │   API    │   │   DB     │      │   API    │
-              └──────────┘   └──────────┘      └──────────┘
+┌─────────────────────────────────────────────────────┐
+│                  Hetzner VPS (CX22)                 │
+│                  Ubuntu 24.04 LTS                   │
+├─────────────────────────────────────────────────────┤
+│                                                     │
+│  ┌─────────────────────────────────────────────┐  │
+│  │            Nginx (Port 80/443)              │  │
+│  │           Reverse Proxy + SSL               │  │
+│  └────────────┬────────────────────────┬───────┘  │
+│               │                        │           │
+│  ┌────────────▼────────────┐  ┌────────▼────────┐ │
+│  │     Launchtrack         │  │    OpenClaw     │ │
+│  │  (Next.js - Port 3000)  │  │ (Gateway 18789) │ │
+│  │                         │  │                 │ │
+│  │ • Web UI                │  │ • AI Agent      │ │
+│  │ • API endpoints         │  │ • Chat API      │ │
+│  │ • Supabase client       │  │ • Tool system   │ │
+│  └─────────────────────────┘  └─────────────────┘ │
+│               │                        │           │
+│  ┌────────────▼────────────────────────▼────────┐ │
+│  │        Systemd Service Manager              │ │
+│  │  • Auto-restart on failure                  │ │
+│  │  • Start on boot                            │ │
+│  └─────────────────────────────────────────────┘ │
+│                                                     │
+│  Firewall (UFW): 22, 80, 443, 3000, 18789         │
+└─────────────────────────────────────────────────────┘
+         │                                │
+         ▼                                ▼
+   Supabase Cloud                  Anthropic API
+   (PostgreSQL)                    (Claude Models)
 ```
 
-## Repository Structure
+## File Structure
 
 ```
 launchtrack-install/
-├── provision.sh          # Main orchestrator script
-├── setup-server.sh       # Server provisioning (runs on VPS)
-├── setup-agent.sh        # Agent workspace configuration (runs on VPS)
-├── README.md            # This file
-└── templates/           # Agent workspace templates
-    ├── SOUL.md.template
-    ├── AGENTS.md.template
-    ├── USER.md.template
-    ├── IDENTITY.md.template
-    ├── MEMORY.md.template
-    ├── HEARTBEAT.md.template
-    └── openclaw.yaml.template
+├── provision.sh           # Main orchestration script
+├── setup-server.sh        # Server setup (runs on VPS)
+├── setup-agent.sh         # Agent configuration
+├── templates/             # Configuration templates
+│   ├── SOUL.md.template           # Strategic consultant persona
+│   ├── AGENTS.md.template         # Agent workspace guide
+│   ├── USER.md.template           # Client profile template
+│   ├── HEARTBEAT.md.template      # Proactive monitoring config
+│   └── openclaw-config.yaml.template  # OpenClaw gateway config
+└── README.md              # This file
 ```
+
+## OpenClaw Agent Configuration
+
+Each customer's OpenClaw agent is configured with:
+
+### Core Files
+
+1. **SOUL.md** - The agent's identity as a strategic consultant
+   - McKinsey-level strategic thinking
+   - Internalized frameworks (Porter's Five Forces, SWOT, OKRs, 7S, etc.)
+   - Never names frameworks, delivers insights directly
+   - Adapts to company context
+
+2. **AGENTS.md** - Workspace and memory management
+   - Session initialization process
+   - Memory file structure
+   - Safety guidelines
+
+3. **USER.md** - Client profile
+   - Company name, industry, size
+   - Primary contact and role
+   - Business context and goals
+   - Communication preferences
+
+4. **HEARTBEAT.md** - Proactive monitoring checklist
+   - KPI monitoring (daily)
+   - Action item tracking
+   - Goal progress reviews
+   - Quarterly business reviews
+   - Market and industry monitoring
+   - Financial health indicators
+
+5. **IDENTITY.md** - Agent instance identity
+   - Organization ID
+   - Purpose and scope
+   - Boundaries
+
+6. **MEMORY.md** - Long-term curated memory
+   - Key insights about the business
+   - Important decisions made
+   - Lessons learned
+   - Client preferences
+
+### Workspace Structure
+
+```
+/opt/launchtrack/.openclaw/workspace/
+├── SOUL.md              # Agent persona
+├── AGENTS.md            # Workspace guide
+├── USER.md              # Client profile
+├── IDENTITY.md          # Instance identity
+├── MEMORY.md            # Long-term memory
+├── HEARTBEAT.md         # Proactive monitoring
+├── openclaw.json        # Gateway config
+└── memory/              # Daily logs
+    ├── heartbeat-state.json
+    └── YYYY-MM-DD.md
+```
+
+## Troubleshooting
+
+### Services Not Starting
+
+Check logs:
+```bash
+journalctl -u launchtrack -n 50
+journalctl -u openclaw-gateway -n 50
+```
+
+### Port Already in Use
+
+Check what's using the port:
+```bash
+lsof -i :3000
+lsof -i :18789
+```
+
+### OpenClaw API Key Issues
+
+Verify the API key is set:
+```bash
+cat /opt/launchtrack/.openclaw/workspace/openclaw.json | grep api_key
+```
+
+Test the key:
+```bash
+curl https://api.anthropic.com/v1/messages \
+  -H "x-api-key: YOUR_KEY" \
+  -H "anthropic-version: 2023-06-01" \
+  -H "content-type: application/json" \
+  -d '{"model":"claude-3-5-sonnet-20241022","max_tokens":10,"messages":[{"role":"user","content":"Hi"}]}'
+```
+
+### Firewall Issues
+
+Check firewall status:
+```bash
+ufw status verbose
+```
+
+Temporarily disable for testing (NOT recommended for production):
+```bash
+ufw disable
+```
+
+### Build Issues
+
+If `npm run build` fails due to memory:
+- Build locally and rsync (see Option B above)
+- Or temporarily upgrade to CX32 (8GB RAM)
+
+## Security Notes
+
+⚠️ **Important Security Considerations:**
+
+1. **Change Default SSH**: Consider changing SSH to non-standard port after setup
+2. **API Keys**: Never commit real API keys to git
+3. **Firewall**: Keep UFW enabled at all times
+4. **Updates**: Regularly update system packages
+   ```bash
+   apt-get update && apt-get upgrade -y
+   ```
+5. **Monitoring**: Set up monitoring and alerts (e.g., UptimeRobot, Datadog)
+6. **Backups**: Implement regular backups of Supabase data
+7. **SSL**: Always use HTTPS in production (Let's Encrypt)
+
+## Maintenance
+
+### Regular Tasks
+
+**Weekly:**
+- Check service status: `systemctl status launchtrack openclaw-gateway`
+- Review logs: `journalctl -u launchtrack -u openclaw-gateway --since "1 week ago"`
+- Check disk usage: `df -h`
+
+**Monthly:**
+- Update packages: `apt-get update && apt-get upgrade -y`
+- Review OpenClaw memory files
+- Check SSL certificate expiry: `certbot certificates`
+
+**Quarterly:**
+- Review and update agent configuration
+- Optimize memory files (archive old daily logs)
+- Review security patches
+
+### Updating Launchtrack
+
+```bash
+# On local machine
+git pull
+npm install
+npm run build
+
+# Sync to server
+rsync -avz .next/ root@<SERVER_IP>:/opt/launchtrack/.next/
+
+# Restart service
+ssh root@<SERVER_IP> "systemctl restart launchtrack"
+```
+
+### Updating OpenClaw
+
+```bash
+ssh root@<SERVER_IP>
+npm update -g openclaw
+systemctl restart openclaw-gateway
+```
+
+## Cost Estimate
+
+**Monthly Costs per Customer:**
+
+- Hetzner CX22 VPS: €5.83/month (~$6.30)
+- Traffic: Included (20TB)
+- Backups (optional): €1.17/month (~$1.26)
+- Snapshots (as needed): €0.0119/GB/month
+
+**Total: ~€7-8/month per customer** (~$7.50-8.50)
 
 ## Support
 
-For issues or questions:
-- Check [Launchtrack repository](https://github.com/obcraft/Launchtrack)
-- Check [OpenClaw documentation](https://github.com/OpenClawHub/openclaw)
-- Review server logs: `journalctl -u launchtrack -u openclaw -f`
+For issues with:
+- **Provisioning scripts**: Check GitHub issues or contact dev team
+- **Hetzner**: https://docs.hetzner.com/
+- **OpenClaw**: https://docs.openclaw.ai/
+- **Next.js**: https://nextjs.org/docs
 
 ## License
 
-Proprietary — Launchtrack provisioning system for paying customers only.
+Internal use only - Launchtrack B.V.
 
 ---
 
-**Launchtrack: Strategy. Executed.**
+**Last Updated:** 2025-02-16
+**Version:** 1.0.0
